@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect, KeyboardEvent } from 'react';
 import { DocumentViewer } from './DocumentViewer';
 import { COMMAND_REGISTRY } from './commandRegistry';
+import { useRouter } from 'next/navigation';
 
 interface CommandOutput {
     id: string;
@@ -11,6 +12,7 @@ interface CommandOutput {
 }
 
 export default function Terminal() {
+    const router = useRouter();
     const [history, setHistory] = useState<CommandOutput[]>([]);
     const [input, setInput] = useState('');
     const [commandHistory, setCommandHistory] = useState<string[]>([]);
@@ -58,7 +60,8 @@ export default function Terminal() {
             let cleared = false;
             const output = command.execute(args.slice(1), {
                 setViewerDoc,
-                clearHistory: () => { cleared = true; }
+                clearHistory: () => { cleared = true; },
+                navigate: (path: string) => router.push(path)
             });
 
             if (cleared) {

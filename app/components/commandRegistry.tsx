@@ -3,6 +3,7 @@ import { AboutBio } from './AboutBio';
 export interface CommandContext {
     setViewerDoc: (doc: { title: string; content: React.ReactNode } | null) => void;
     clearHistory: () => void;
+    navigate: (path: string) => void;
 }
 
 export interface Command {
@@ -102,6 +103,18 @@ export const COMMAND_REGISTRY: Record<string, Command> = {
             } catch (error) {
                 return <p className="text-red-400">Error connecting to the server.</p>;
             }
+        }
+    },
+    navigate: {
+        name: 'navigate',
+        description: 'Navigate to a different page',
+        execute: (args, { navigate }) => {
+            const page = args.join(' ').trim();
+            if (!page) {
+                return <p className="text-yellow-400">Please provide a page. Usage: <span className="text-gray-300">navigate [page]</span></p>;
+            }
+            navigate(page);
+            return <p>Redirecting to {page}...</p>;
         }
     }
 };
