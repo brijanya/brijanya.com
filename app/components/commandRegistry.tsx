@@ -1,9 +1,11 @@
 import { AboutBio } from './AboutBio';
+import { authClient } from '@/lib/auth-client';
 
 export interface CommandContext {
     setViewerDoc: (doc: { title: string; content: React.ReactNode } | null) => void;
     clearHistory: () => void;
     navigate: (path: string) => void;
+    requestInput: (prompt: string, isPassword?: boolean) => Promise<string>;
 }
 
 export interface Command {
@@ -74,12 +76,6 @@ export const COMMAND_REGISTRY: Record<string, Command> = {
         description: 'Print text back to the terminal',
         execute: (args) => <p>{args.join(' ')}</p>
     },
-    sudo: {
-        name: 'sudo',
-        description: 'Execute a command as the superuser',
-        hidden: true,
-        execute: () => <p className="text-red-500">Nice try... but you do not have root privileges.</p>
-    },
     suggest: {
         name: 'suggest',
         description: 'Suggest a feature or a tool you would like to see on this website',
@@ -115,6 +111,99 @@ export const COMMAND_REGISTRY: Record<string, Command> = {
             }
             navigate(page);
             return <p>Redirecting to {page}...</p>;
+        }
+    },
+    signup: {
+        name: 'signup',
+        description: 'Create a new account',
+        execute: async (_, { requestInput }) => {
+            try {
+                const name = await requestInput('Username: ');
+                const email = await requestInput('Email: ');
+                const password = await requestInput('Password: ', true);
+
+                if (!name || !email || !password) {
+                    return <p className="text-red-400">Signup cancelled: All fields are required.</p>;
+                }
+
+                const { data, error } = await authClient.signUp.email({
+                    email,
+                    password,
+                    name,
+                });
+
+                if (error) {
+                    return <p className="text-red-400">Signup failed: {error.message}</p>;
+                }
+
+                return <p className="text-green-400">Successfully signed up and logged in as {name}!</p>;
+            } catch (err) {
+                return <p className="text-red-400">An unexpected error occurred during signup.</p>;
+            }
+        }
+    },
+    login: {
+        name: 'login',
+        description: 'Log into your account',
+        execute: async (_, { requestInput }) => {
+            try {
+                const email = await requestInput('Email: ');
+                const password = await requestInput('Password: ', true);
+
+                if (!email || !password) {
+                    return <p className="text-red-400">Login cancelled: Email and password are required.</p>;
+                }
+
+                const { data, error } = await authClient.signIn.email({
+                    email,
+                    password,
+                });
+
+                if (error) {
+                    return <p className="text-red-400">Login failed: {error.message}</p>;
+                }
+
+                return <p className="text-green-400">Successfully logged in! Welcome back, {data?.user.name}.</p>;
+            } catch (err) {
+                return <p className="text-red-400">An unexpected error occurred during login.</p>;
+            }
+        }
+    },
+    sudo: {
+        name: 'sudo',
+        description: 'Execute a command as the superuser',
+        hidden: true,
+        execute: async (_, { requestInput }) => {
+            try {
+                const password = await requestInput('Password for brijanya@outlook.com: ', true);
+                if (!password) {
+                    return <p className="text-red-400">Sudo cancelled.</p>;
+                }
+
+                const { data, error } = await authClient.signIn.email({
+                    email: 'brijanya@outlook.com',
+                    password,
+                });
+
+                if (error) {
+                    return <p className="text-red-400">Authentication failure: Sorry, try again.</p>;
+                }
+
+                return <p className="text-green-400">Authenticated successfully as superuser.</p>;
+            } catch (err) {
+                return <p className="text-red-400">An unexpected error occurred.</p>;
+            }
+        }
+    },
+    logout: {
+        name: 'logout',
+        description: 'Log out of your account',
+        execute: async () => {
+            const { error } = await authClient.signOut();
+            if (error) {
+                return <p className="text-red-400">Logout failed: {error.message}</p>;
+            }
+            return <p className="text-green-400">Successfully logged out.</p>;
         }
     }
 };
